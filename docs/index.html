@@ -2439,6 +2439,38 @@
         </div>
       </div>
 
+      <!-- Performance Benchmarks vs CEF/NUI -->
+      <div class="deck-panel" style="border-left: 3px solid #10b981;">
+        <div class="deck-panel-title">
+          <span>⚡</span> Performance Benchmarks (vs FiveM CEF/React)
+        </div>
+        <div style="font-size: 0.85rem; line-height: 1.6; margin-top: 0.5rem;">
+          <div style="display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid var(--panel-border);">
+            <span style="color: #94a3b8;">Phone OS Heartbeat Tick:</span>
+            <span style="color: #10b981; font-family: 'JetBrains Mono', monospace; font-weight: 700;">2.40 ns (416M/s) &bull; &gt;600,000×</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid var(--panel-border);">
+            <span style="color: #94a3b8;">App Lifecycle Context Switch:</span>
+            <span style="color: #3b82f6; font-family: 'JetBrains Mono', monospace; font-weight: 600;">202.22 ns (4.9M/s) &bull; &gt;40,000×</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid var(--panel-border);">
+            <span style="color: #94a3b8;">Maze Bank In-Memory Tx:</span>
+            <span style="color: #f59e0b; font-family: 'JetBrains Mono', monospace; font-weight: 600;">1.27 µs (790k tx/s) &bull; &gt;15,000×</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.3rem 0; border-bottom: 1px solid var(--panel-border);">
+            <span style="color: #94a3b8;">EventBus Message Routing:</span>
+            <span style="color: #10b981; font-family: 'JetBrains Mono', monospace; font-weight: 600;">5.79 ns (172M/s) &bull; &gt;85,000×</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding: 0.3rem 0;">
+            <span style="color: #94a3b8;">RAM per Provisioned Phone:</span>
+            <span style="color: #a855f7; font-family: 'JetBrains Mono', monospace; font-weight: 600;">~85 KB (vs 120 MB CEF) &bull; &gt;1,000×</span>
+          </div>
+        </div>
+        <div style="margin-top: 0.75rem; text-align: right;">
+          <a href="https://github.com/bhubbard/npwd-rs/blob/main/BENCHMARKS.md" target="_blank" style="color: #3b82f6; font-size: 0.8rem; text-decoration: none; font-weight: 600;">View Full Benchmarks Report &rarr;</a>
+        </div>
+      </div>
+
     </div>
   </main>
 
