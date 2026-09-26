@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>npwd-rs | Pure Rust Simulated Smartphone Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=SF+Pro+Display:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090b10;
+      --panel-bg: rgba(18, 22, 34, 0.85);
+      --panel-border: rgba(255, 255, 255, 0.08);
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.4);
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --phone-w: 375px;
+      --phone-h: 780px;
+      --phone-radius: 48px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 75%, rgba(139, 92, 246, 0.08) 0%, transparent 40%),
+        linear-gradient(180deg, #090b10 0%, #0d111a 100%);
+      color: #e2e8f0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 1.25rem 2.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      background: rgba(9, 11, 16, 0.7);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--accent-glow);
+    }
+
+    .brand-logo svg {
+      width: 20px;
+      height: 20px;
+      fill: white;
+    }
+
+    .brand-title {
+      font-weight: 700;
+      font-size: 1.2rem;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .badge-rust {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .header-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .header-links a:hover {
+      color: #fff;
+    }
+
+    .btn-github {
+      background: #1e293b;
+      color: #fff;
+      padding: 0.45rem 0.9rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s;
+    }
+
+    .btn-github:hover {
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      padding: 2.5rem;
+      gap: 3rem;
+      max-width: 1440px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: flex-start;
+      justify-content: center;
+    }
+
+    /* Device Container */
+    .phone-wrapper {
+      position: sticky;
+      top: 5.5rem;
+      flex-shrink: 0;
+      perspective: 1200px;
+    }
+
+    .phone-device {
+      width: var(--phone-w);
+      height: var(--phone-h);
+      background: #000;
+      border-radius: var(--phone-radius);
+      box-shadow: 
+        0 0 0 12px #1e222d,
+        0 0 0 14px #0f121a,
+        0 25px 60px -15px rgba(0, 0, 0, 0.9),
+        0 0 40px -10px var(--accent-glow);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Hardware Elements */
+    .dynamic-island {
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 110px;
+      height: 26px;
+      background: #000;
+      border-radius: 20px;
+      z-index: 99;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .dynamic-island.call-active {
+      width: 175px;
+      background: #111827;
+      border: 1px solid #10b981;
+    }
+
+    .camera-lens {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #101524;
+      border: 1.5px solid #232a3d;
+    }
+
+    .speaker-slot {
+      width: 45px;
+      height: 4px;
+      border-radius: 2px;
+      background: #1a1e29;
+    }
+
+    /* Status Bar */
+    .status-bar {
+      height: 44px;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      z-index: 90;
+      color: #fff;
+    }
+
+    .status-left {
+      width: 60px;
+      font-size: 0.82rem;
+      letter-spacing: -0.01em;
+    }
+
+    .status-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .signal-bars {
+      display: flex;
+      gap: 2px;
+      align-items: flex-end;
+      height: 11px;
+    }
+
+    .bar {
+      width: 3px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 1px;
+    }
+
+    .bar:nth-child(1) { height: 3px; }
+    .bar:nth-child(2) { height: 5px; }
+    .bar:nth-child(3) { height: 8px; }
+    .bar:nth-child(4) { height: 11px; }
+
+    .bar.active {
+      background: #fff;
+    }
+
+    .battery-pill {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 0.72rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .battery-icon {
+      width: 20px;
+      height: 10px;
+      border: 1.5px solid #fff;
+      border-radius: 3px;
+      padding: 1px;
+      position: relative;
+    }
+
+    .battery-icon::after {
+      content: '';
+      position: absolute;
+      right: -3px;
+      top: 2px;
+      width: 2px;
+      height: 3px;
+      background: #fff;
+      border-radius: 0 1px 1px 0;
+    }
+
+    .battery-fill {
+      height: 100%;
+      background: #10b981;
+      border-radius: 1px;
+      transition: width 0.3s;
+    }
+
+    /* Screen Views */
+    .screen-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      background: #0d1117;
+      background-size: cover;
+      background-position: center;
+      overflow: hidden;
+      transition: background 0.4s ease;
+    }
+
+    .view-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+      transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .view-screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    /* Lock Screen */
+    #lock-screen {
+      padding: 3rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      text-align: center;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(20px);
+    }
+
+    .lock-time {
+      font-size: 4.2rem;
+      font-weight: 300;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .lock-date {
+      font-size: 1rem;
+      font-weight: 500;
+      color: #94a3b8;
+      margin-top: 0.4rem;
+    }
+
+    .lock-notifications {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      margin: 2rem 0;
+    }
+
+    .lock-notif-card {
+      background: rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 16px;
+      padding: 0.85rem 1rem;
+      text-align: left;
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+
+    .lock-notif-card:hover {
+      transform: scale(1.02);
+    }
+
+    .lock-notif-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      margin-bottom: 0.25rem;
+    }
+
+    .lock-notif-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .lock-notif-body {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      margin-top: 0.15rem;
+    }
+
+    .unlock-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+      width: 100%;
+    }
+
+    .pin-dots {
+      display: flex;
+      gap: 0.6rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pin-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1.5px solid #fff;
+      background: transparent;
+      transition: background 0.2s;
+    }
+
+    .pin-dot.filled {
+      background: #fff;
+    }
+
+    .btn-unlock-pill {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 0.65rem 1.6rem;
+      border-radius: 24px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn-unlock-pill:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Home Screen */
+    #home-screen {
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .app-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.25rem 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .app-icon-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.35rem;
+      cursor: pointer;
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .app-icon-wrapper:active {
+      transform: scale(0.9);
+    }
+
+    .app-icon {
+      width: 58px;
+      height: 58px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+      color: #fff;
+      font-size: 1.5rem;
+      transition: all 0.2s;
+    }
+
+    .app-icon.contacts { background: linear-gradient(135deg, #f97316, #ea580c); }
+    .app-icon.messages { background: linear-gradient(135deg, #10b981, #059669); }
+    .app-icon.bank { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+    .app-icon.camera { background: linear-gradient(135deg, #64748b, #334155); }
+    .app-icon.market { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+    .app-icon.settings { background: linear-gradient(135deg, #475569, #1e293b); }
+
+    .app-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      border: 2px solid #000;
+    }
+
+    .app-title {
+      font-size: 0.73rem;
+      color: #f1f5f9;
+      font-weight: 500;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    }
+
+    .dock-bar {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 28px;
+      padding: 0.75rem 1.2rem;
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 0.5rem;
+    }
+
+    .dock-bar .app-title {
+      display: none;
+    }
+
+    /* App Views */
+    .app-view {
+      background: #0f172a;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-header {
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(10px);
+    }
+
+    .app-header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-back {
+      background: transparent;
+      border: none;
+      color: #3b82f6;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+
+    .app-header-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+
+    .app-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    /* Contacts App Styling */
+    .search-box {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 0.55rem 0.85rem;
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+      width: 100%;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.65rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+    }
+
+    .contact-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    .contact-info {
+      flex: 1;
+      margin-left: 0.75rem;
+    }
+
+    .contact-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .contact-number {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    /* Messages App Styling */
+    .msg-thread {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+    }
+
+    .thread-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+    }
+
+    .thread-details {
+      flex: 1;
+    }
+
+    .thread-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.2rem;
+    }
+
+    .thread-name {
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
+
+    .thread-time {
+      font-size: 0.7rem;
+      color: #64748b;
+    }
+
+    .thread-snippet {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+
+    /* Conversation Chat View */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .chat-bubble {
+      max-width: 78%;
+      padding: 0.6rem 0.85rem;
+      border-radius: 18px;
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .chat-bubble.sent {
+      align-self: flex-end;
+      background: #3b82f6;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-bubble.received {
+      align-self: flex-start;
+      background: #1e293b;
+      color: #e2e8f0;
+      border-bottom-left-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem;
+      background: #090e1a;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .chat-input {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 0.5rem 0.9rem;
+      color: #fff;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    .btn-send {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    /* Bank App Styling */
+    .bank-card {
+      background: linear-gradient(135deg, #1e293b, #0f172a);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 20px;
+      padding: 1.25rem;
+      box-shadow: 0 10px 25px -5px rgba(239, 68, 68, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .bank-card::before {
+      content: 'MAZE BANK';
+      position: absolute;
+      right: -10px;
+      bottom: -15px;
+      font-size: 2.8rem;
+      font-weight: 900;
+      color: rgba(255, 255, 255, 0.03);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .bank-label {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .bank-balance {
+      font-size: 2.1rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff;
+      margin: 0.25rem 0 0.8rem;
+    }
+
+    .bank-acc-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      color: #f87171;
+    }
+
+    .bank-actions {
+      display: flex;
+      gap: 0.6rem;
+    }
+
+    .btn-bank-act {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.6rem;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+    }
+
+    .btn-bank-act:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .transfer-form {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .form-group label {
+      font-size: 0.72rem;
+      color: #94a3b8;
+      margin-bottom: 0.2rem;
+      display: block;
+    }
+
+    .form-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 0.5rem 0.7rem;
+      color: #fff;
+      font-size: 0.82rem;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+
+    .btn-submit-transfer {
+      background: #ef4444;
+      border: none;
+      color: #fff;
+      padding: 0.65rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 0.4rem;
+      transition: background 0.2s;
+    }
+
+    .btn-submit-transfer:hover {
+      background: #dc2626;
+    }
+
+    .tx-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.8rem;
+    }
+
+    .tx-title {
+      font-weight: 500;
+    }
+
+    .tx-date {
+      font-size: 0.68rem;
+      color: #64748b;
+    }
+
+    .tx-amount.credit {
+      color: #10b981;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .tx-amount.debit {
+      color: #f87171;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Incoming Call Overlay */
+    #call-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.96);
+      backdrop-filter: blur(25px);
+      z-index: 95;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4.5rem 2rem 3.5rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    #call-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .caller-avatar {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+      animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+      70% { box-shadow: 0 0 0 20px rgba(59, 130, 246, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+    }
+
+    .caller-name {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 1rem;
+    }
+
+    .call-status {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      margin-top: 0.2rem;
+    }
+
+    .call-controls {
+      display: flex;
+      gap: 2.5rem;
+    }
+
+    .btn-call {
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #fff;
+      transition: transform 0.15s;
+    }
+
+    .btn-call:active {
+      transform: scale(0.92);
+    }
+
+    .btn-call.accept {
+      background: #10b981;
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-call.decline {
+      background: #ef4444;
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Notification Banner */
+    .notif-banner {
+      position: absolute;
+      top: 48px;
+      left: 14px;
+      right: 14px;
+      background: rgba(30, 41, 59, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border-radius: 16px;
+      padding: 0.75rem 1rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      z-index: 98;
+      transform: translateY(-130%);
+      transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      cursor: pointer;
+    }
+
+    .notif-banner.show {
+      transform: translateY(0);
+    }
+
+    .banner-top {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      margin-bottom: 0.2rem;
+    }
+
+    .banner-app-icon {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      background: #3b82f6;
+    }
+
+    .banner-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .banner-desc {
+      font-size: 0.78rem;
+      color: #cbd5e1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Home Bar */
+    .home-bar-area {
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 90;
+    }
+
+    .home-bar {
+      width: 135px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.6);
+      border-radius: 3px;
+      transition: width 0.2s, background 0.2s;
+    }
+
+    .home-bar-area:hover .home-bar {
+      background: #fff;
+      width: 145px;
+    }
+
+    /* Simulation Control Deck */
+    .deck-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      max-width: 680px;
+    }
+
+    .deck-panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 18px;
+      padding: 1.5rem;
+      backdrop-filter: blur(16px);
+    }
+
+    .deck-panel-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin-bottom: 1rem;
+    }
+
+    .deck-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.85rem;
+    }
+
+    .deck-btn {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      transition: all 0.2s;
+      text-align: left;
+    }
+
+    .deck-btn:hover {
+      background: #334155;
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .deck-btn-icon {
+      font-size: 1.25rem;
+    }
+
+    .deck-btn-text small {
+      display: block;
+      font-size: 0.72rem;
+      color: #94a3b8;
+      font-weight: 400;
+      margin-top: 0.1rem;
+    }
+
+    /* Live Event Terminal */
+    .terminal-window {
+      background: #06080e;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      overflow: hidden;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+    }
+
+    .terminal-header {
+      background: #121824;
+      padding: 0.5rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      color: #94a3b8;
+      font-size: 0.72rem;
+    }
+
+    .term-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #334155;
+    }
+    .term-dot.r { background: #ef4444; }
+    .term-dot.y { background: #f59e0b; }
+    .term-dot.g { background: #10b981; }
+
+    .terminal-body {
+      height: 180px;
+      overflow-y: auto;
+      padding: 0.85rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .term-line {
+      display: flex;
+      gap: 0.6rem;
+      line-height: 1.4;
+    }
+
+    .term-time { color: #64748b; }
+    .term-source { color: #3b82f6; font-weight: 600; }
+    .term-source.phone { color: #10b981; }
+    .term-content { color: #e2e8f0; }
+
+    /* Code showcase snippet */
+    .code-box {
+      background: #06080e;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      overflow-x: auto;
+    }
+    .kw { color: #f43f5e; font-weight: 600; }
+    .fn { color: #38bdf8; }
+    .typ { color: #4ade80; }
+    .str { color: #facc15; }
+    .com { color: #64748b; font-style: italic; }
+
+    /* Camera Viewfinder */
+    .viewfinder {
+      position: relative;
+      flex: 1;
+      background: radial-gradient(circle at center, #1e293b 0%, #090e1a 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.5rem 1rem;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .viewfinder-grid {
+      position: absolute;
+      inset: 0;
+      background-size: 33.33% 33.33%;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+      pointer-events: none;
+    }
+
+    .btn-shutter {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: transparent;
+      padding: 3px;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .btn-shutter::after {
+      content: '';
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.1s;
+    }
+
+    .btn-shutter:active::after {
+      transform: scale(0.85);
+    }
+
+    /* Marketplace Items */
+    .market-card {
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      padding: 0.85rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .market-info h4 {
+      font-size: 0.88rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .market-desc {
+      font-size: 0.72rem;
+      color: #94a3b8;
+    }
+
+    .market-price {
+      font-size: 0.88rem;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      color: #10b981;
+    }
+
+    .btn-buy {
+      background: #8b5cf6;
+      border: none;
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-buy:hover {
+      background: #7c3aed;
+    }
+
+    @media (max-width: 1024px) {
+      main {
+        flex-direction: column;
+        align-items: center;
+      }
+      .phone-wrapper {
+        position: static;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+      </div>
+      <div class="brand-title">
+        npwd-rs
+        <span class="badge-rust">Rust 2024</span>
+      </div>
+    </a>
+    <div class="header-links">
+      <a href="https://github.com/bhubbard/npwd-rs#readme" target="_blank">Architecture Docs</a>
+      <a href="https://github.com/bhubbard/npwd-rs/tree/main/tests" target="_blank">Test Suite</a>
+      <a href="https://github.com/bhubbard/npwd-rs" target="_blank" class="btn-github">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        GitHub Repository
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Simulated Smartphone -->
+    <div class="phone-wrapper">
+      <div class="phone-device" id="phone-device">
+        
+        <!-- Dynamic Island -->
+        <div class="dynamic-island" id="dynamic-island">
+          <div class="camera-lens"></div>
+          <div class="speaker-slot"></div>
+        </div>
+
+        <!-- Drop-down Notification Banner -->
+        <div class="notif-banner" id="notif-banner" onclick="handleBannerClick()">
+          <div class="banner-top">
+            <div class="banner-app-icon" id="banner-icon"></div>
+            <span id="banner-app-name">System</span>
+            <span>• Just now</span>
+          </div>
+          <div class="banner-title" id="banner-title">Notification</div>
+          <div class="banner-desc" id="banner-desc">Notification message preview...</div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+          <div class="status-left" id="status-clock">12:00</div>
+          <div class="status-right">
+            <div class="signal-bars">
+              <div class="bar active"></div>
+              <div class="bar active"></div>
+              <div class="bar active"></div>
+              <div class="bar active"></div>
+            </div>
+            <span>5G</span>
+            <div class="battery-pill">
+              <span id="battery-num">85%</span>
+              <div class="battery-icon">
+                <div class="battery-fill" id="battery-fill" style="width: 85%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Screen Content Container -->
+        <div class="screen-content" id="screen-container">
+          
+          <!-- 1. Lock Screen -->
+          <div class="view-screen active" id="lock-screen">
+            <div>
+              <div class="lock-time" id="lock-clock">12:00</div>
+              <div class="lock-date" id="lock-date">Friday, September 25</div>
+            </div>
+
+            <div class="lock-notifications" id="lock-notifs">
+              <div class="lock-notif-card" onclick="unlockPhone(); openApp('messages');">
+                <div class="lock-notif-header">
+                  <span>MESSAGES</span>
+                  <span>2m ago</span>
+                </div>
+                <div class="lock-notif-title">Lester Crest</div>
+                <div class="lock-notif-body">The blueprints are ready for inspection.</div>
+              </div>
+            </div>
+
+            <div class="unlock-container">
+              <div class="pin-dots">
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+                <div class="pin-dot"></div>
+              </div>
+              <button class="btn-unlock-pill" onclick="unlockPhone()">
+                <span>🔓</span> Swipe or Tap to Unlock
+              </button>
+            </div>
+          </div>
+
+          <!-- 2. Home Screen -->
+          <div class="view-screen" id="home-screen">
+            <div class="app-grid">
+              <div class="app-icon-wrapper" onclick="openApp('contacts')">
+                <div class="app-icon contacts">👥</div>
+                <div class="app-title">Contacts</div>
+              </div>
+
+              <div class="app-icon-wrapper" onclick="openApp('messages')">
+                <div class="app-icon messages">
+                  💬
+                  <div class="app-badge" id="badge-messages">2</div>
+                </div>
+                <div class="app-title">Messages</div>
+              </div>
+
+              <div class="app-icon-wrapper" onclick="openApp('bank')">
+                <div class="app-icon bank">
+                  🏛️
+                  <div class="app-badge" id="badge-bank">1</div>
+                </div>
+                <div class="app-title">Maze Bank</div>
+              </div>
+
+              <div class="app-icon-wrapper" onclick="openApp('camera')">
+                <div class="app-icon camera">📷</div>
+                <div class="app-title">Camera</div>
+              </div>
+
+              <div class="app-icon-wrapper" onclick="openApp('market')">
+                <div class="app-icon market">🛍️</div>
+                <div class="app-title">Marketplace</div>
+              </div>
+
+              <div class="app-icon-wrapper" onclick="openApp('settings')">
+                <div class="app-icon settings">⚙️</div>
+                <div class="app-title">Settings</div>
+              </div>
+            </div>
+
+            <!-- Dock -->
+            <div class="dock-bar">
+              <div class="app-icon-wrapper" onclick="openApp('contacts')">
+                <div class="app-icon contacts" style="width: 48px; height: 48px; font-size: 1.25rem;">👥</div>
+              </div>
+              <div class="app-icon-wrapper" onclick="openApp('messages')">
+                <div class="app-icon messages" style="width: 48px; height: 48px; font-size: 1.25rem;">💬</div>
+              </div>
+              <div class="app-icon-wrapper" onclick="openApp('bank')">
+                <div class="app-icon bank" style="width: 48px; height: 48px; font-size: 1.25rem;">🏛️</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. App: Contacts -->
+          <div class="view-screen app-view" id="app-contacts">
+            <div class="app-header">
+              <button class="btn-back" onclick="goHome()">‹ Back</button>
+              <div class="app-header-title">Contacts</div>
+              <button class="btn-back" onclick="promptAddContact()">+ Add</button>
+            </div>
+            <div class="app-body">
+              <input type="text" class="search-box" id="contact-search" placeholder="Search contacts..." oninput="filterContacts()">
+              <div id="contacts-list" style="display: flex; flex-direction: column;">
+                <!-- Populated dynamically -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. App: Messages -->
+          <div class="view-screen app-view" id="app-messages">
+            <div class="app-header">
+              <button class="btn-back" onclick="handleMessagesBack()" id="btn-msg-back">‹ Back</button>
+              <div class="app-header-title" id="msg-header-title">Messages</div>
+              <div style="width: 40px;"></div>
+            </div>
+            <div class="app-body" id="messages-list-view">
+              <!-- Thread list populated dynamically -->
+            </div>
+            <!-- Active Conversation Thread -->
+            <div class="app-body" id="conversation-view" style="display: none; padding: 0.75rem 0.5rem 0;">
+              <div class="chat-container" id="chat-bubbles">
+                <!-- Messages populated -->
+              </div>
+              <div class="chat-input-row">
+                <input type="text" class="chat-input" id="chat-text-input" placeholder="iMessage..." onkeydown="if(event.key==='Enter') sendChatMessage()">
+                <button class="btn-send" onclick="sendChatMessage()">↑</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. App: Bank -->
+          <div class="view-screen app-view" id="app-bank">
+            <div class="app-header">
+              <button class="btn-back" onclick="goHome()">‹ Back</button>
+              <div class="app-header-title">Maze Bank</div>
+              <div style="width: 40px;"></div>
+            </div>
+            <div class="app-body">
+              <div class="bank-card">
+                <div class="bank-label">Checking Account</div>
+                <div class="bank-balance" id="bank-bal-display">$5,000.00</div>
+                <div class="bank-acc-num">ACC: US-MAZE-004289</div>
+              </div>
+
+              <div class="bank-actions">
+                <button class="btn-bank-act" onclick="toggleTransferForm()">💸 Wire Transfer</button>
+                <button class="btn-bank-act" onclick="payPendingInvoice()">🧾 Pay Invoice (<span id="invoice-count">1</span>)</button>
+              </div>
+
+              <!-- Wire Transfer Form -->
+              <div class="transfer-form" id="transfer-form-card" style="display: none;">
+                <div class="form-group">
+                  <label>Recipient Account Number</label>
+                  <input type="text" class="form-input" id="tx-recipient" placeholder="US-MAZE-XXXX">
+                </div>
+                <div class="form-group">
+                  <label>Amount ($)</label>
+                  <input type="number" class="form-input" id="tx-amount" placeholder="250.00">
+                </div>
+                <div class="form-group">
+                  <label>Memo / Description</label>
+                  <input type="text" class="form-input" id="tx-memo" placeholder="Services rendered">
+                </div>
+                <button class="btn-submit-transfer" onclick="submitBankTransfer()">Send Wire Transfer</button>
+              </div>
+
+              <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; margin-top: 0.5rem;">RECENT TRANSACTIONS</div>
+              <div id="tx-ledger">
+                <!-- Transactions dynamically listed -->
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. App: Camera -->
+          <div class="view-screen app-view" id="app-camera">
+            <div class="app-header">
+              <button class="btn-back" onclick="goHome()">‹ Back</button>
+              <div class="app-header-title">Camera & Gallery</div>
+              <span style="font-size: 0.72rem; color: #10b981; font-family: monospace;">POS: [-1024, 345, 14]</span>
+            </div>
+            <div class="app-body" style="padding: 0.75rem;">
+              <div class="viewfinder" id="viewfinder">
+                <div class="viewfinder-grid"></div>
+                <div style="z-index: 10; font-size: 0.75rem; color: rgba(255,255,255,0.7); background: rgba(0,0,0,0.4); padding: 0.2rem 0.6rem; border-radius: 6px;">
+                  FILTER: <span id="current-filter" style="color: #38bdf8;">Normal</span>
+                </div>
+                <button class="btn-shutter" onclick="capturePhoto()"></button>
+              </div>
+              <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding: 0.25rem 0;">
+                <button class="btn-bank-act" onclick="setFilter('Normal')">Normal</button>
+                <button class="btn-bank-act" onclick="setFilter('Cyberpunk')">Cyberpunk</button>
+                <button class="btn-bank-act" onclick="setFilter('Vintage')">Vintage</button>
+                <button class="btn-bank-act" onclick="setFilter('Noir')">Noir</button>
+              </div>
+              <div style="font-size: 0.72rem; color: #94a3b8; font-weight: 600;">SAVED CAPTURES (<span id="photo-count">0</span>)</div>
+              <div id="photo-gallery" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem;"></div>
+            </div>
+          </div>
+
+          <!-- 7. App: Marketplace -->
+          <div class="view-screen app-view" id="app-market">
+            <div class="app-header">
+              <button class="btn-back" onclick="goHome()">‹ Back</button>
+              <div class="app-header-title">DarkNet Market</div>
+              <span style="font-size: 0.72rem; color: #a855f7;">TOR ACTIVE</span>
+            </div>
+            <div class="app-body" id="marketplace-list">
+              <!-- Populated dynamically -->
+            </div>
+          </div>
+
+          <!-- 8. App: Settings -->
+          <div class="view-screen app-view" id="app-settings">
+            <div class="app-header">
+              <button class="btn-back" onclick="goHome()">‹ Back</button>
+              <div class="app-header-title">Settings</div>
+              <div style="width: 40px;"></div>
+            </div>
+            <div class="app-body">
+              <div style="background: #1e293b; border-radius: 14px; padding: 0.85rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                  <span>Dark Mode</span>
+                  <input type="checkbox" checked onchange="logEvent('Settings', 'Toggled Dark Mode')">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                  <span>Haptic Vibration</span>
+                  <input type="checkbox" checked onchange="logEvent('Settings', 'Toggled Vibration')">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                  <span>Silent / Mute</span>
+                  <input type="checkbox" onchange="logEvent('Settings', 'Toggled Mute')">
+                </div>
+              </div>
+
+              <div style="font-size: 0.75rem; color: #94a3b8; font-weight: 600;">WALLPAPER THEME</div>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;">
+                <div onclick="setWallpaper('#0d1117')" style="height: 60px; background: #0d1117; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;"></div>
+                <div onclick="setWallpaper('linear-gradient(135deg, #1e1b4b, #31104b)')" style="height: 60px; background: linear-gradient(135deg, #1e1b4b, #31104b); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;"></div>
+                <div onclick="setWallpaper('linear-gradient(135deg, #064e3b, #022c22)')" style="height: 60px; background: linear-gradient(135deg, #064e3b, #022c22); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); cursor: pointer;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Incoming / Active Call Modal Overlay -->
+          <div id="call-overlay">
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <div class="caller-avatar" id="call-avatar">👤</div>
+              <div class="caller-name" id="call-name">Lester Crest</div>
+              <div class="call-status" id="call-status-label">Incoming cellular call...</div>
+            </div>
+
+            <div class="call-controls" id="call-incoming-controls">
+              <button class="btn-call decline" onclick="declineCall()">✕</button>
+              <button class="btn-call accept" onclick="acceptCall()">📞</button>
+            </div>
+
+            <div class="call-controls" id="call-active-controls" style="display: none;">
+              <button class="btn-call decline" onclick="endCall()">🔴</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Virtual Home Bar -->
+        <div class="home-bar-area" onclick="goHome()">
+          <div class="home-bar"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Simulator Control Deck -->
+    <div class="deck-container">
+      
+      <div class="deck-panel">
+        <div class="deck-panel-title">
+          <span>🎮</span> Game World ECS Event Injector
+        </div>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem;">
+          Dispatch simulated events across the clean Bevy / FiveM ECS message bridge into the pure Rust <code>PhoneOS</code> event bus.
+        </p>
+        <div class="deck-grid">
+          <button class="deck-btn" onclick="simReceiveSms()">
+            <span class="deck-btn-icon">💬</span>
+            <div class="deck-btn-text">
+              Receive SMS
+              <small>GameEvent::ReceiveSms</small>
+            </div>
+          </button>
+
+          <button class="deck-btn" onclick="simIncomingCall()">
+            <span class="deck-btn-icon">📞</span>
+            <div class="deck-btn-text">
+              Trigger Inbound Call
+              <small>GameEvent::IncomingCall</small>
+            </div>
+          </button>
+
+          <button class="deck-btn" onclick="simDepositSalary()">
+            <span class="deck-btn-icon">💰</span>
+            <div class="deck-btn-text">
+              Deposit Salary (+$2,500)
+              <small>GameEvent::SalaryPaid</small>
+            </div>
+          </button>
+
+          <button class="deck-btn" onclick="simDispatchAlert()">
+            <span class="deck-btn-icon">🚨</span>
+            <div class="deck-btn-text">
+              911 Dispatch Alert
+              <small>GameEvent::DispatchAlert</small>
+            </div>
+          </button>
+
+          <button class="deck-btn" onclick="simDarknetBounty()">
+            <span class="deck-btn-icon">🎯</span>
+            <div class="deck-btn-text">
+              DarkNet Bounty
+              <small>GameEvent::BountyPlaced</small>
+            </div>
+          </button>
+
+          <button class="deck-btn" onclick="toggleCharger()">
+            <span class="deck-btn-icon">⚡</span>
+            <div class="deck-btn-text">
+              <span id="btn-charge-label">Connect Charger</span>
+              <small>GameEvent::BatteryPowerConnected</small>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Event Bus Stream -->
+      <div class="deck-panel" style="padding: 1.25rem;">
+        <div class="deck-panel-title" style="margin-bottom: 0.75rem;">
+          <span>📡</span> Event Bus Live Telemetry
+        </div>
+        <div class="terminal-window">
+          <div class="terminal-header">
+            <div class="term-dot r"></div>
+            <div class="term-dot y"></div>
+            <div class="term-dot g"></div>
+            <span style="margin-left: 0.5rem;">npwd_rs::events::EventBus (Game ECS ⇄ Phone OS)</span>
+          </div>
+          <div class="terminal-body" id="term-logs">
+            <div class="term-line">
+              <span class="term-time">[00:00:00]</span>
+              <span class="term-source">[PhoneOS]</span>
+              <span class="term-content">Initialized PhoneOS state machine v0.1.0 (6 core apps mounted)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bevy Rust ECS Integration Pattern -->
+      <div class="deck-panel">
+        <div class="deck-panel-title">
+          <span>🦀</span> Idiomatic Bevy ECS System Bridge
+        </div>
+        <div class="code-box">
+<span class="com">// Clean message-passing protocol between Bevy ECS and PhoneOS</span>
+<span class="kw">fn</span> <span class="fn">phone_bridge_system</span>(
+    <span class="kw">mut</span> phone: <span class="typ">ResMut</span>&lt;<span class="typ">PhoneOS</span>&gt;,
+    time: <span class="typ">Res</span>&lt;<span class="typ">Time</span>&gt;,
+    <span class="kw">mut</span> game_events: <span class="typ">EventReader</span>&lt;<span class="typ">GameEvent</span>&gt;,
+    <span class="kw">mut</span> phone_events: <span class="typ">EventWriter</span>&lt;<span class="typ">PhoneEvent</span>&gt;,
+) {
+    phone.<span class="fn">tick</span>(time.<span class="fn">delta_secs</span>());
+    <span class="kw">for</span> ev <span class="kw">in</span> game_events.<span class="fn">read</span>() {
+        phone.<span class="fn">handle_game_event</span>(ev.<span class="fn">clone</span>()).<span class="fn">unwrap</span>();
+    }
+    <span class="kw">for</span> out <span class="kw">in</span> phone.event_bus.<span class="fn">drain_outgoing</span>() {
+        phone_events.<span class="fn">send</span>(out);
+    }
+}
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // State Store
+    const state = {
+      isLocked: true,
+      currentApp: null,
+      balanceCents: 500000,
+      battery: 85,
+      isCharging: false,
+      callActive: false,
+      callSeconds: 0,
+      callTimer: null,
+      currentFilter: 'Normal',
+      contacts: [
+        { id: '1', name: 'Lester Crest', number: '555-0144', avatar: 'LC', fav: true },
+        { id: '2', name: 'Franklin Clinton', number: '555-0199', avatar: 'FC', fav: true },
+        { id: '3', name: 'Michael De Santa', number: '555-0188', avatar: 'MD', fav: false },
+        { id: '4', name: 'Trevor Philips', number: '555-0122', avatar: 'TP', fav: false }
+      ],
+      messages: {
+        '555-0144': [
+          { sender: 'them', text: 'Hey, I set up the encrypted channel.' },
+          { sender: 'me', text: 'Good. What do we have?' },
+          { sender: 'them', text: 'The blueprints are ready for inspection.' }
+        ]
+      },
+      transactions: [
+        { desc: 'Salary: Los Santos Customs', amount: 250000, credit: true, date: 'Today' },
+        { desc: 'Ammunition & Gear', amount: 45000, credit: false, date: 'Yesterday' }
+      ],
+      marketplace: [
+        { id: 'm1', title: 'Armored Executive V12', price: 8500000, desc: 'Reinforced glass, bulletproof tires.' },
+        { id: 'm2', title: 'Encrypted Radio Rig', price: 120000, desc: 'Long-range scanner with scrambler.' },
+        { id: 'm3', title: 'DarkNet Stealth Drone', price: 450000, desc: 'Infrared gimbal, 4K night optics.' }
+      ]
+    };
+
+    // Clock
+    function updateClock() {
+      const now = new Date();
+      const hrs = String(now.getHours()).padStart(2, '0');
+      const mins = String(now.getMinutes()).padStart(2, '0');
+      const timeStr = `${hrs}:${mins}`;
+      document.getElementById('status-clock').textContent = timeStr;
+      document.getElementById('lock-clock').textContent = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Logger
+    function logEvent(source, text) {
+      const logs = document.getElementById('term-logs');
+      const row = document.createElement('div');
+      row.className = 'term-line';
+      const time = new Date().toTimeString().split(' ')[0];
+      const isPhone = source.toLowerCase().includes('phone');
+      row.innerHTML = `
+        <span class="term-time">[${time}]</span>
+        <span class="term-source ${isPhone ? 'phone' : ''}">[${source}]</span>
+        <span class="term-content">${text}</span>
+      `;
+      logs.prepend(row);
+    }
+
+    // Lock & Home navigation
+    function unlockPhone() {
+      state.isLocked = false;
+      switchScreen('home-screen');
+      logEvent('PhoneOS', 'Phone unlocked via biometrics (transitioned to HomeScreen)');
+    }
+
+    function lockPhone() {
+      state.isLocked = true;
+      state.currentApp = null;
+      switchScreen('lock-screen');
+      logEvent('PhoneOS', 'Screen locked (PhoneState::LockScreen)');
+    }
+
+    function goHome() {
+      if (state.isLocked) return;
+      state.currentApp = null;
+      switchScreen('home-screen');
+      logEvent('PhoneOS', 'Navigated to HomeScreen via virtual Home Bar');
+    }
+
+    function switchScreen(id) {
+      document.querySelectorAll('.view-screen').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
+    }
+
+    function openApp(id) {
+      if (state.isLocked) return;
+      state.currentApp = id;
+      switchScreen(`app-${id}`);
+      logEvent('PhoneOS', `App launched: ${id} (PhoneApp::on_mount / on_resume)`);
+      if (id === 'contacts') renderContacts();
+      if (id === 'messages') renderMessageThreads();
+      if (id === 'bank') renderBank();
+      if (id === 'market') renderMarketplace();
+    }
+
+    // Notification Banner
+    function showNotification(appName, title, desc, iconBg) {
+      const banner = document.getElementById('notif-banner');
+      document.getElementById('banner-app-name').textContent = appName;
+      document.getElementById('banner-title').textContent = title;
+      document.getElementById('banner-desc').textContent = desc;
+      if (iconBg) document.getElementById('banner-icon').style.background = iconBg;
+
+      banner.classList.add('show');
+      setTimeout(() => {
+        banner.classList.remove('show');
+      }, 4500);
+    }
+
+    function handleBannerClick() {
+      const banner = document.getElementById('notif-banner');
+      banner.classList.remove('show');
+      if (state.isLocked) unlockPhone();
+      const appName = document.getElementById('banner-app-name').textContent.toLowerCase();
+      if (appName.includes('message')) openApp('messages');
+      else if (appName.includes('bank')) openApp('bank');
+      else if (appName.includes('darknet') || appName.includes('market')) openApp('market');
+    }
+
+    // Contacts
+    function renderContacts(filter = '') {
+      const list = document.getElementById('contacts-list');
+      list.innerHTML = '';
+      const filtered = state.contacts.filter(c => 
+        c.name.toLowerCase().includes(filter.toLowerCase()) || c.number.includes(filter)
+      );
+
+      filtered.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'contact-item';
+        item.innerHTML = `
+          <div style="display:flex; align-items:center;">
+            <div class="contact-avatar">${c.avatar}</div>
+            <div class="contact-info">
+              <div class="contact-name">${c.name} ${c.fav ? '⭐' : ''}</div>
+              <div class="contact-number">${c.number}</div>
+            </div>
+          </div>
+          <button class="btn-bank-act" style="padding: 0.3rem 0.6rem;" onclick="callContact('${c.name}', '${c.number}')">📞</button>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    function filterContacts() {
+      const q = document.getElementById('contact-search').value;
+      renderContacts(q);
+    }
+
+    function promptAddContact() {
+      const name = prompt('Contact Name:');
+      if (!name) return;
+      const number = prompt('Phone Number:', '555-0');
+      if (!number) return;
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+      state.contacts.push({ id: String(Date.now()), name, number, avatar: initials, fav: false });
+      renderContacts();
+      logEvent('ContactsApp', `Added contact '${name}' (${number})`);
+    }
+
+    function callContact(name, number) {
+      logEvent('PhoneEvent', `Outbound call initiated: PlaceCall { target_number: "${number}" }`);
+      triggerCall(name, number, false);
+    }
+
+    // Messages
+    function renderMessageThreads() {
+      const list = document.getElementById('messages-list-view');
+      const conv = document.getElementById('conversation-view');
+      list.style.display = 'flex';
+      conv.style.display = 'none';
+      document.getElementById('msg-header-title').textContent = 'Messages';
+      list.innerHTML = '';
+
+      Object.keys(state.messages).forEach(number => {
+        const contact = state.contacts.find(c => c.number === number) || { name: number, avatar: '👤' };
+        const msgs = state.messages[number];
+        const lastMsg = msgs[msgs.length - 1];
+
+        const item = document.createElement('div');
+        item.className = 'msg-thread';
+        item.onclick = () => openConversation(number);
+        item.innerHTML = `
+          <div class="thread-avatar">${contact.avatar}</div>
+          <div class="thread-details">
+            <div class="thread-top">
+              <span class="thread-name">${contact.name}</span>
+              <span class="thread-time">Just now</span>
+            </div>
+            <div class="thread-snippet">${lastMsg ? lastMsg.text : 'No messages'}</div>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    }
+
+    let activeNumber = null;
+    function openConversation(number) {
+      activeNumber = number;
+      const contact = state.contacts.find(c => c.number === number) || { name: number };
+      document.getElementById('messages-list-view').style.display = 'none';
+      document.getElementById('conversation-view').style.display = 'flex';
+      document.getElementById('msg-header-title').textContent = contact.name;
+      renderChatBubbles();
+    }
+
+    function handleMessagesBack() {
+      if (activeNumber) {
+        activeNumber = null;
+        renderMessageThreads();
+      } else {
+        goHome();
+      }
+    }
+
+    function renderChatBubbles() {
+      const container = document.getElementById('chat-bubbles');
+      container.innerHTML = '';
+      const msgs = state.messages[activeNumber] || [];
+      msgs.forEach(m => {
+        const b = document.createElement('div');
+        b.className = `chat-bubble ${m.sender === 'me' ? 'sent' : 'received'}`;
+        b.textContent = m.text;
+        container.appendChild(b);
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-text-input');
+      const text = input.value.trim();
+      if (!text || !activeNumber) return;
+      if (!state.messages[activeNumber]) state.messages[activeNumber] = [];
+      state.messages[activeNumber].push({ sender: 'me', text });
+      input.value = '';
+      renderChatBubbles();
+      logEvent('PhoneEvent', `SendSms { to: "${activeNumber}", text: "${text}" }`);
+
+      // Simulated auto-reply
+      setTimeout(() => {
+        const replies = ['Copy that.', 'Sounds like a plan.', 'Meet me at the lockup.', 'Already on it.'];
+        const reply = replies[Math.floor(Math.random() * replies.length)];
+        state.messages[activeNumber].push({ sender: 'them', text: reply });
+        renderChatBubbles();
+        logEvent('GameEvent', `ReceiveSms { from: "${activeNumber}", text: "${reply}" }`);
+      }, 1200);
+    }
+
+    // Bank
+    function renderBank() {
+      const balStr = `$${(state.balanceCents / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      document.getElementById('bank-bal-display').textContent = balStr;
+
+      const ledger = document.getElementById('tx-ledger');
+      ledger.innerHTML = '';
+      state.transactions.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'tx-item';
+        item.innerHTML = `
+          <div>
+            <div class="tx-title">${t.desc}</div>
+            <div class="tx-date">${t.date}</div>
+          </div>
+          <div class="tx-amount ${t.credit ? 'credit' : 'debit'}">
+            ${t.credit ? '+' : '-'}$${(t.amount / 100).toFixed(2)}
+          </div>
+        `;
+        ledger.appendChild(item);
+      });
+    }
+
+    function toggleTransferForm() {
+      const f = document.getElementById('transfer-form-card');
+      f.style.display = f.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function submitBankTransfer() {
+      const to = document.getElementById('tx-recipient').value.trim();
+      const amount = parseFloat(document.getElementById('tx-amount').value);
+      const memo = document.getElementById('tx-memo').value.trim() || 'Wire Transfer';
+
+      if (!to || isNaN(amount) || amount <= 0) {
+        alert('Please specify a valid recipient account and positive amount.');
+        return;
+      }
+
+      const cents = Math.round(amount * 100);
+      if (cents > state.balanceCents) {
+        alert('Insufficient funds in checking account!');
+        return;
+      }
+
+      state.balanceCents -= cents;
+      state.transactions.unshift({ desc: `Wire to ${to} (${memo})`, amount: cents, credit: false, date: 'Just now' });
+      renderBank();
+      toggleTransferForm();
+      logEvent('PhoneEvent', `SendMoney { to_account: "${to}", amount: ${cents}, memo: "${memo}" }`);
+      showNotification('Maze Bank', 'Wire Transfer Sent', `-$${amount.toFixed(2)} to ${to}`, '#ef4444');
+    }
+
+    function payPendingInvoice() {
+      const countEl = document.getElementById('invoice-count');
+      if (parseInt(countEl.textContent) === 0) {
+        alert('No pending invoices!');
+        return;
+      }
+      const invAmount = 15000; // $150.00
+      state.balanceCents -= invAmount;
+      state.transactions.unshift({ desc: 'Medical Treatment ER (Invoice Paid)', amount: invAmount, credit: false, date: 'Just now' });
+      countEl.textContent = '0';
+      document.getElementById('badge-bank').style.display = 'none';
+      renderBank();
+      logEvent('PhoneOS', 'Paid invoice #INV-492 ($150.00) to Pillbox Medical');
+      showNotification('Maze Bank', 'Invoice Settled', 'Paid $150.00 to Pillbox Medical', '#ef4444');
+    }
+
+    // Camera
+    let photoId = 1;
+    function setFilter(f) {
+      state.currentFilter = f;
+      document.getElementById('current-filter').textContent = f;
+      logEvent('CameraApp', `Applied photo filter: ${f}`);
+    }
+
+    function capturePhoto() {
+      const gallery = document.getElementById('photo-gallery');
+      const card = document.createElement('div');
+      card.style.height = '70px';
+      card.style.borderRadius = '6px';
+      card.style.background = state.currentFilter === 'Cyberpunk' ? 'linear-gradient(45deg, #ec4899, #8b5cf6)' : 
+                              state.currentFilter === 'Vintage' ? 'linear-gradient(45deg, #d97706, #78350f)' :
+                              state.currentFilter === 'Noir' ? 'linear-gradient(45deg, #334155, #0f172a)' : 
+                              'linear-gradient(45deg, #3b82f6, #06b6d4)';
+      card.style.display = 'flex';
+      card.style.alignItems = 'center';
+      card.style.justifyContent = 'center';
+      card.style.fontSize = '0.65rem';
+      card.style.color = '#fff';
+      card.textContent = `#${photoId++}`;
+      gallery.prepend(card);
+      document.getElementById('photo-count').textContent = String(photoId - 1);
+      logEvent('PhoneEvent', `CapturePhoto { position: [-1024, 345, 14], heading: 180.0, filter: "${state.currentFilter}" }`);
+    }
+
+    // Marketplace
+    function renderMarketplace() {
+      const list = document.getElementById('marketplace-list');
+      list.innerHTML = '';
+      state.marketplace.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'market-card';
+        card.innerHTML = `
+          <div class="market-info">
+            <h4>${item.title}</h4>
+            <div class="market-desc">${item.desc}</div>
+            <div class="market-price">$${(item.price / 100).toLocaleString()}</div>
+          </div>
+          <button class="btn-buy" onclick="buyMarketItem('${item.id}', '${item.title}', ${item.price})">Order</button>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function buyMarketItem(id, title, price) {
+      if (price > state.balanceCents) {
+        alert('Insufficient bank balance for this clandestine order!');
+        return;
+      }
+      state.balanceCents -= price;
+      state.transactions.unshift({ desc: `DarkNet: ${title}`, amount: price, credit: false, date: 'Just now' });
+      renderBank();
+      logEvent('PhoneEvent', `PurchaseItem { listing_id: "${id}", price: ${price} }`);
+      showNotification('DarkNet Market', 'Courier Dispatched', `Dead-drop timer: 10s for ${title}`, '#8b5cf6');
+
+      // Countdown delivery
+      setTimeout(() => {
+        showNotification('DarkNet Courier', 'Drop Complete', `${title} placed at GPS drop zone!`, '#10b981');
+        logEvent('GameEvent', `Dead-drop delivery arrived for '${title}'`);
+      }, 10000);
+    }
+
+    // Settings
+    function setWallpaper(style) {
+      document.getElementById('screen-container').style.background = style;
+      logEvent('SettingsApp', `Wallpaper updated to ${style}`);
+    }
+
+    // Call Simulation
+    function triggerCall(name, number, incoming = true) {
+      state.callActive = true;
+      document.getElementById('call-name').textContent = name;
+      document.getElementById('call-avatar').textContent = name[0] || '👤';
+      document.getElementById('call-status-label').textContent = incoming ? 'Incoming cellular call...' : 'Dialing...';
+      document.getElementById('call-incoming-controls').style.display = incoming ? 'flex' : 'none';
+      document.getElementById('call-active-controls').style.display = incoming ? 'none' : 'flex';
+      document.getElementById('call-overlay').classList.add('active');
+      document.getElementById('dynamic-island').classList.add('call-active');
+    }
+
+    function acceptCall() {
+      document.getElementById('call-status-label').textContent = 'Connected (00:01)';
+      document.getElementById('call-incoming-controls').style.display = 'none';
+      document.getElementById('call-active-controls').style.display = 'flex';
+      state.callSeconds = 0;
+      state.callTimer = setInterval(() => {
+        state.callSeconds++;
+        const s = String(state.callSeconds % 60).padStart(2, '0');
+        const m = String(Math.floor(state.callSeconds / 60)).padStart(2, '0');
+        document.getElementById('call-status-label').textContent = `Connected (${m}:${s})`;
+      }, 1000);
+      logEvent('PhoneEvent', 'AnswerCall { call_id: uuid() }');
+    }
+
+    function declineCall() {
+      endCall();
+      logEvent('PhoneEvent', 'EndCall (Declined)');
+    }
+
+    function endCall() {
+      clearInterval(state.callTimer);
+      state.callActive = false;
+      document.getElementById('call-overlay').classList.remove('active');
+      document.getElementById('dynamic-island').classList.remove('call-active');
+      logEvent('PhoneEvent', 'EndCall { call_id: uuid() }');
+    }
+
+    // Event Injectors
+    function simReceiveSms() {
+      const from = '555-0144';
+      const text = 'Check the encrypted documents ASAP.';
+      if (!state.messages[from]) state.messages[from] = [];
+      state.messages[from].push({ sender: 'them', text });
+      logEvent('GameEvent', `ReceiveSms { from: "${from}", text: "${text}" }`);
+      showNotification('Messages', 'Lester Crest', text, '#10b981');
+      const badge = document.getElementById('badge-messages');
+      badge.textContent = String(parseInt(badge.textContent || '0') + 1);
+      badge.style.display = 'flex';
+    }
+
+    function simIncomingCall() {
+      logEvent('GameEvent', 'IncomingCall { caller: "Lester Crest", number: "555-0144" }');
+      triggerCall('Lester Crest', '555-0144', true);
+    }
+
+    function simDepositSalary() {
+      const salary = 250000;
+      state.balanceCents += salary;
+      state.transactions.unshift({ desc: 'Salary: Dynasty8 Executive', amount: salary, credit: true, date: 'Just now' });
+      renderBank();
+      logEvent('GameEvent', `SalaryPaid { amount: ${salary}, employer: "Dynasty8 Executive" }`);
+      showNotification('Maze Bank', 'Direct Deposit Received', `+$2,500.00 from Dynasty8`, '#10b981');
+    }
+
+    function simDispatchAlert() {
+      logEvent('GameEvent', 'DispatchAlert { code: "10-99", msg: "Officer in pursuit of black Pfister Comet" }');
+      showNotification('911 Dispatch', 'CODE 10-99 EMERGENCY', 'Officer in pursuit of black Pfister Comet (GPS linked)', '#ef4444');
+    }
+
+    function simDarknetBounty() {
+      const bounty = 5000000; // $50,000
+      logEvent('GameEvent', `BountyPlaced { target: "Agent Haines", reward: ${bounty} }`);
+      showNotification('DarkNet Market', 'New Contract Posted', `TARGET: Agent Haines | Reward: $50,000`, '#8b5cf6');
+      state.marketplace.unshift({ id: 'm_bounty', title: 'CONTRACT: Agent Haines', price: bounty, desc: 'Dead-drop proof of mission completion.' });
+      if (state.currentApp === 'market') renderMarketplace();
+    }
+
+    function toggleCharger() {
+      state.isCharging = !state.isCharging;
+      document.getElementById('btn-charge-label').textContent = state.isCharging ? 'Disconnect Charger' : 'Connect Charger';
+      logEvent('GameEvent', `BatteryPowerConnected { is_charging: ${state.isCharging} }`);
+      showNotification('Battery', state.isCharging ? 'Fast Charger Connected ⚡' : 'Charger Disconnected', '', '#10b981');
+    }
+
+    // Battery simulation
+    setInterval(() => {
+      if (state.isCharging) {
+        state.battery = Math.min(100, state.battery + 1);
+      } else {
+        if (!state.isLocked) {
+          state.battery = Math.max(0, state.battery - 0.1);
+        }
+      }
+      const bFill = document.getElementById('battery-fill');
+      const bNum = document.getElementById('battery-num');
+      const rounded = Math.round(state.battery);
+      bNum.textContent = `${rounded}%`;
+      bFill.style.width = `${rounded}%`;
+      bFill.style.background = rounded < 20 ? '#ef4444' : '#10b981';
+    }, 2000);
+  </script>
+</body>
+</html>
