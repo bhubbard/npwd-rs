@@ -1,6 +1,6 @@
 # npwd-rs 📱🦀
 
-[![Live Demo](https://img.shields.io/badge/Demo-Interactive%20Phone%20Simulator-3b82f6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://bhubbard.github.io/npwd-rs/)
+[![Live Demo](https://img.shields.io/badge/Demo-Interactive%20Phone%20Simulator-3b82f6?style=for-the-badge&logo=googlechrome&logoColor=white)](https://code.brandonhubbard.com/npwd-rs/)
 [![CI / Tests](https://img.shields.io/badge/Tests-100%25%20Passing-10b981?style=for-the-badge&logo=rust&logoColor=white)](https://github.com/bhubbard/npwd-rs/actions)
 [![Rust Edition](https://img.shields.io/badge/Rust-2024%20Edition-f97316?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-8b5cf6?style=for-the-badge)](LICENSE)
@@ -226,7 +226,7 @@ test result: ok. 19 passed; 0 failed; 0 ignored; finished in 0.00s
 
 ## 🌐 Live Interactive Demo
 An interactive web smartphone simulator is hosted on GitHub Pages:
-👉 **[https://bhubbard.github.io/npwd-rs/](https://bhubbard.github.io/npwd-rs/)**
+👉 **[https://code.brandonhubbard.com/npwd-rs/](https://code.brandonhubbard.com/npwd-rs/)** *(Mirror: [https://bhubbard.github.io/npwd-rs/](https://bhubbard.github.io/npwd-rs/))*
 
 Explore:
 - Interactive titanium phone frame with Dynamic Island
