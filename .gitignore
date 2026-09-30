@@ -3,3 +3,5 @@ target/
 *.swp
 *.bak
 .DS_Store
+coverage_report
+target/coverage

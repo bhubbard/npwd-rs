@@ -129,6 +129,7 @@ pub enum PhoneState {
 }
 
 /// Pure Rust Simulated Smartphone Operating System.
+#[derive(Debug)]
 pub struct PhoneOS {
     pub state: PhoneState,
     previous_state: Option<PhoneState>,

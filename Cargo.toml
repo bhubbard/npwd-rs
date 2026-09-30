@@ -1,6 +1,6 @@
 [package]
 name = "npwd-rs"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 authors = ["Brandon Hubbard <bhubbard@users.noreply.github.com>"]
 description = "Pure Rust simulated in-game smartphone architecture, OS state machine, apps, and game-world event bridge from NPWD"

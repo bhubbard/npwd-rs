@@ -56,6 +56,7 @@ impl AppMetadata {
 }
 
 /// Context provided to applications during lifecycle hooks and event handling.
+#[derive(Debug)]
 pub struct AppContext<'a> {
     pub owner_number: &'a str,
     pub player_id: &'a str,
@@ -102,7 +103,7 @@ pub enum AppOutputAction {
 }
 
 /// Trait defining the lifecycle and capabilities of a simulated phone application.
-pub trait PhoneApp: Send + Sync + 'static {
+pub trait PhoneApp: std::fmt::Debug + Send + Sync + 'static {
     /// Return immutable application metadata.
     fn metadata(&self) -> &AppMetadata;
 
@@ -136,7 +137,7 @@ pub trait PhoneApp: Send + Sync + 'static {
 }
 
 /// Application Registry managing installed and currently running apps.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct AppRegistry {
     apps: HashMap<String, Box<dyn PhoneApp>>,
     running_apps: Vec<String>,
